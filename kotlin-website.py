@@ -1,40 +1,34 @@
 import copy
 import datetime
-import glob
 import json
 import os
 import sys
 import threading
-import re
+from hashlib import md5
 from os import path
 from urllib.parse import urlparse, urljoin, ParseResult
 
-import xmltodict
 import yaml
 from bs4 import BeautifulSoup
 from flask import Flask, render_template, Response, send_from_directory, request
-from flask.views import View
 from flask.helpers import url_for, send_file, make_response
+from flask.views import View
 from flask_frozen import Freezer, walk_directory
-from hashlib import md5
 from yaml import FullLoader
 
 from src.Feature import Feature
-from src.dist import get_dist_pages
-from src.github import assert_valid_git_hub_url
-from src.navigation import process_video_nav, process_nav, get_current_url
 from src.api import get_api_page
 from src.encoder import DateAwareEncoder
 from src.externals import process_nav_includes
+from src.github import assert_valid_git_hub_url
 from src.grammar import get_grammar
+from src.ktl_components import KTLComponentExtension
 from src.markdown.makrdown import jinja_aware_markdown
+from src.navigation import process_nav, get_current_url
 from src.pages.MyFlatPages import MyFlatPages
 from src.pdf import generate_pdf
 from src.processors.processors import process_code_blocks
 from src.processors.processors import set_replace_simple_code
-from src.search import build_search_indices
-from src.sitemap import generate_sitemap, generate_temporary_sitemap
-from src.ktl_components import KTLComponentExtension
 
 app = Flask(__name__, static_folder='_assets')
 app.config.from_pyfile('mysettings.py')
@@ -57,17 +51,31 @@ _nav_lock = threading.RLock()
 
 _cached_asset_version = {}
 
+
 def get_asset_version(filename):
     if filename in _cached_asset_version:
         return _cached_asset_version[filename]
 
-    filepath = (root_folder if  root_folder  else ".") + filename
+    filepath = (root_folder if root_folder else ".") + filename
     if filename and path.exists(filepath):
         with open(filepath, 'rb') as file:
             digest = md5(file.read()).hexdigest()
             _cached_asset_version[filename] = digest
             return digest
     return None
+
+
+def redirect_to_map(redirects_list):
+    result = {}
+
+    for item in redirects_list:
+        key = item["from"]
+        result.update({
+            f"{key}": item["to"]
+        })
+
+    return result
+
 
 def get_site_data():
     data = {}
@@ -89,6 +97,8 @@ def get_site_data():
                 sys.stderr.write('Cant read data file ' + data_file + ': ')
                 sys.stderr.write(str(exc))
                 sys.exit(-1)
+    data["core"] = redirect_to_map(
+        yaml.load(open("redirects/stdlib-redirects.yml", encoding="UTF-8"), Loader=FullLoader))
     return data
 
 
@@ -114,10 +124,15 @@ def get_nav():
     process_nav(request.path, nav)
     return nav
 
+
 def get_countries_size():
-    def match_string(string):
-        return re.search(r'\((.*?)\)', string.get("location")).group(1)
-    matches = set(map(match_string, site_data['universities']))
+    def match_string(entry):
+        location = entry.get("location", "")
+        # Extract the last part as the country code
+        return location.split(",")[-1].strip()
+
+    # Extract unique countries, ignoring any None results
+    matches = set(filter(None, map(match_string, site_data['universities'])))
     return len(matches)
 
 
@@ -176,16 +191,19 @@ def add_data_to_context():
         'headerCurrentUrl': get_current_url(nav['subnav']['content']),
     }
 
+
 @app.template_filter('get_domain')
 def get_domain(url):
     return urlparse(url).netloc
+
 
 app.jinja_env.globals['get_domain'] = get_domain
 
 
 @app.template_filter('split_chunk')
 def split_chunk(list, size):
-    return [list[i:i+size] for i in range(len(list))[::size]]
+    return [list[i:i + size] for i in range(len(list))[::size]]
+
 
 app.jinja_env.globals['split_chunk'] = split_chunk
 
@@ -222,11 +240,6 @@ def grammar():
     return render_template('pages/grammar.html', kotlinGrammar=grammar)
 
 
-@app.route('/docs/videos.html')
-def videos_page():
-    return render_template('pages/videos.html', videos=process_video_nav(site_data['videos']))
-
-
 @app.route('/docs/kotlin-reference.pdf')
 def kotlin_reference_pdf():
     return send_file(path.join(root_folder, "assets", "kotlin-reference.pdf"))
@@ -235,6 +248,11 @@ def kotlin_reference_pdf():
 @app.route('/docs/kotlin-docs.pdf')
 def kotlin_docs_pdf():
     return send_file(path.join(root_folder, "assets", "kotlin-reference.pdf"))
+
+
+@app.route('/docs/<path:path>')
+def docs(path):
+    return send_from_directory('dist/docs/', path)
 
 
 @app.route('/_next/<path:path>')
@@ -265,6 +283,7 @@ def education_page():
         countries_count=get_countries_size()
     )
 
+
 @app.route('/education/why-teach-kotlin.html')
 def why_teach_page():
     return render_template('pages/education/why-teach-kotlin.html')
@@ -276,12 +295,9 @@ def education_courses():
 
 
 @app.route('/')
-def index_page():
-    features = get_kotlin_features()
-    return render_template('pages/index.html',
-                           is_index_page=True,
-                           features=features
-                           )
+def next_index_page():
+    return send_file(path.join(root_folder, 'out', 'index.html'))
+
 
 def process_page(page_path):
     # get_nav() has side effect to copy and patch files from the `external` folder
@@ -295,7 +311,7 @@ def process_page(page_path):
         if page_path.startswith('https://') or page_path.startswith('http://'):
             return render_template('redirect.html', url=page_path)
         else:
-            return render_template('redirect.html', url=url_for('page', page_path = page_path))
+            return render_template('redirect.html', url=url_for('page', page_path=page_path))
 
     if 'date' in page.meta and page['date'] is not None:
         page.meta['formatted_date'] = page.meta['date'].strftime('%d %B %Y')
@@ -333,9 +349,6 @@ def validate_links_weak(page, page_path):
 
         href = urlparse(urljoin('/' + page_path, link['href']))
         if href.scheme != '':
-            continue
-
-        if page_path == 'community/slackccugl':
             continue
 
         endpoint, params = url_adapter.match(href.path, 'GET', query_args={})
@@ -393,7 +406,7 @@ def page(page_path):
 
 @app.route('/404.html')
 def page_404():
-    return render_template('pages/404.html')
+    return send_file(path.join(root_folder, 'out', '404.html'))
 
 
 @freezer.register_generator
@@ -448,10 +461,11 @@ def generate_redirect_pages():
 
 @app.errorhandler(404)
 def page_not_found(e):
-    return render_template('pages/404.html'), 404
+    return send_file(path.join(root_folder, 'out', '404.html')), 404
 
 
 app.register_error_handler(404, page_not_found)
+
 
 @app.route('/api/<path:page_path>')
 def api_page(page_path):
@@ -513,6 +527,7 @@ def get_index_page(page_path):
 
 generate_redirect_pages()
 
+
 @app.after_request
 def add_header(request):
     request.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
@@ -559,12 +574,6 @@ if __name__ == '__main__':
                     sys.stderr.write(error + '\n')
                 sys.exit(-1)
 
-        elif argv_copy[1] == "sitemap":
-            generate_sitemap(get_dist_pages())
-            # temporary sitemap
-            generate_temporary_sitemap()
-        elif argv_copy[1] == "index":
-            build_search_indices(get_dist_pages())
         elif argv_copy[1] == "reference-pdf":
             generate_pdf("kotlin-docs.pdf", site_data)
         else:
