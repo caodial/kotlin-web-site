@@ -1,11 +1,11 @@
-- title: "Kotlin 1.7.20-Beta Released"
-  link: https://blog.jetbrains.com/kotlin/2022/08/kotlin-1-7-20-beta/
+- title: "KotlinConf 2024 Tickets Are Now Available!"
+  link: https://blog.jetbrains.com/kotlin/2023/07/kotlinconf-2024/
 
-- title: "KotlinConf returns to Amsterdam in April 2023!"
-  link: https://blog.jetbrains.com/kotlin/2022/07/kotlinconf-2023/
+- title: "Updated Kotlin roadmap for 2023"
+  link: https://kotlinlang.org/docs/roadmap.html
 
-- title: "A New Approach to Incremental Compilation in Kotlin"
-  link: https://blog.jetbrains.com/kotlin/2022/07/a-new-approach-to-incremental-compilation-in-kotlin/
+- title: "Kotlin Multiplatform Mobile Content Creators"
+  link: https://blog.jetbrains.com/kotlin/2022/12/shout-out-to-kotlin-multiplatform-mobile-content-creators/
 
-- title: "Kotlin News: KotlinConf, Build Reports, DataFrame Preview, and More"
-  link: https://blog.jetbrains.com/kotlin/2022/07/kotlin-news-june/
+- title: "Reproducible Kotlin Compiler Artifacts"
+  link: https://blog.jetbrains.com/kotlin/2023/02/reproducible-kotlin-compiler-artifacts/
