@@ -1,6 +1,6 @@
 [//]: # (title: What's new in Kotlin 1.2)
 
-_Release date: 28 November 2017_
+_Released: 28 November 2017_
 
 ## Table of contents
 
@@ -23,7 +23,7 @@ When you compile a multiplatform project for a specific platform, the code for b
 
 A key feature of the multiplatform project support is the possibility to express dependencies of common code on platform-specific
 parts through *expected* and *actual* declarations. An *expected* declaration specifies an API (class, interface, annotation, top-level declaration etc.).
-An *actual* declaration is either a platform-dependent implementation of the API or a typealias referring to an existing
+An *actual* declaration is either a platform-dependent implementation of the API or a type alias referring to an existing
 implementation of the API in an external library. Here's an example:
 
 In the common code:
@@ -54,7 +54,7 @@ actual fun hello(world: String): String =
 actual typealias URL = java.net.URL
 ```
 
-See the [multiplatform programming documentation](multiplatform.md) for details and steps to build a multiplatform project.
+See the [multiplatform programming documentation](multiplatform-intro.md) for details and steps to build a multiplatform project.
 
 ## Other language features
 

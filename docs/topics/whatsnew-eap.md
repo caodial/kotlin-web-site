@@ -1,94 +1,64 @@
-[//]: # (title: What's new in Kotlin 1.8.0-Beta)
+[//]: # (title: What's new in Kotlin %kotlinEapVersion%)
 
-_[Release date: %kotlinEapReleaseDate%](eap.md#build-details)_
+_[Released: %kotlinEapReleaseDate%](eap.md#build-details)_
 
-> This document doesn't cover all the features of the Early Access Preview (EAP) release, but highlights the new ones and some major improvements.
-> See the full list of changes in the [GitHub changelog](https://github.com/JetBrains/kotlin/releases/tag/v1.8.0-Beta).
+> This document doesn't cover all of the features of the Early Access Preview (EAP) release,
+> but it highlights some major improvements.
 >
-{type="note"}
+> See the full list of changes in the [GitHub changelog](https://github.com/JetBrains/kotlin/releases/tag/v%kotlinEapVersion%).
+>
+{style="note"}
 
-The Kotlin 1.8.0-Beta release is out! Here are some highlights from this release:
+The Kotlin %kotlinEapVersion% release is out!
+Here are some details of this EAP release:
 
-* [We removed the old backend for Kotlin/JVM](#kotlin-jvm)
-* [We now support Xcode 14](#kotlin-native)
-* [We ensured compatibility with Gradle 7.3](#gradle)
-* [We introduced new experimental functions for JVM: recursively copy or delete directory content](#standard-library)
+* [](#kotlin-k2-compiler-new-default-kapt-plugin)
+* [](#gradle-support-for-version-8-11)
 
 ## IDE support
 
-Kotlin plugins that support 1.8.0-Beta are available for:
+The Kotlin plugins that support %kotlinEapVersion% are bundled in the latest IntelliJ IDEA and Android Studio.
+You don't need to update the Kotlin plugin in your IDE.
+All you need to do is to [change the Kotlin version](configure-build-for-eap.md) to %kotlinEapVersion% in your build scripts.
 
-| IDE | Supported versions |
-|--|--|
-| IntelliJ IDEA | 2021.3.x, 2022.1.x, 2022.2.x |
-| Android Studio | Dolphin (213), Electric Eel (221), Flamingo (222) |
+See [Update to a new release](releases.md#update-to-a-new-kotlin-version) for details.
 
-## Kotlin/JVM
+## Kotlin K2 compiler: new default kapt plugin
 
-* Removed the old backend. (The `-Xuse-old-backend` compiler option is no longer supported).
-* Added support for Java 19 bytecode.
+<primary-label ref="beta"/>
 
-## Kotlin/Native
+Starting with Kotlin %kotlinEapVersion%, the K2 implementation of the kapt compiler plugin is enabled by default
+for all the projects.
 
-* Added support for Xcode 14 and `watchosDeviceArm64` target.
-* Added support for new annotations to improve Objective-C and Swift interoperability:
-    * `@ObjCName`
-    * `@HiddenFromObjC`
-    * `@ShouldRefineInSwift`
-* Added improvements to the CocoaPods Gradle plugin so that registered Kotlin frameworks are now dynamically linked by default.
+The JetBrains team has launched the new implementation of the kapt plugin with the K2 compiler back in Kotlin 1.9.20. 
+Since then, we have further developed K2 kapt's internal implementation and made its behavior similar to that of K1 kapt,
+while significantly improving its performance.
 
-## Kotlin/JS
+If you encounter any issues when using kapt with the K2 compiler,
+you can temporarily revert to the previous kapt plugin implementation.
 
-* Stabilized the IR compiler and set incremental compilation to be used by default.
-* Deprecated the old backend.
-* Added additional reporting options for when `yarn.lock` is updated during the CI process.
-* Updated the Gradle plugin so that `kotlin.js.browser.karma.browsers` property can be used to set browser test targets.
+To do this, add the following option to the `gradle.properties` file of your project:
 
-## Kotlin Multiplatform
+```kotlin
+kapt.use.k2=false
+```
 
-* Added new Android source set layout that can be enabled in Gradle plugin with `kotlin.mpp.androidSourceSetLayoutVersion=2`.
-* Added new naming schema for `KotlinSourceSet` entities.
-* Changed the naming scheme of compilation configurations created by the Kotlin Multiplatform Gradle plugin.
+Please report such issues to our [issue tracker](https://youtrack.jetbrains.com/issue/KT-71439/K2-kapt-feedback).
 
-## Gradle
+## Gradle: support for version 8.11
 
-* Ensured compatibility with Gradle 7.3.
-* Added the option to disable daemon fallback by using `kotlin.daemon.useFallbackStrategy`.
-* Exposed available Kotlin compiler options as Gradle lazy properties.
-* Updated minimum supported Gradle version to 6.8.3.
-* Updated minimum supported Android Gradle plugin version to 4.1.3.
+Kotlin %kotlinEapVersion% is now compatible with the latest stable Gradle version, 8.11, and supports its features.
+Gradle versions 8.7 to 8.11 are supported, with one exception. If you use the Kotlin Multiplatform Gradle plugin,
+you may see deprecation warnings in your multiplatform projects when calling the [`withJava()` function in the JVM target](multiplatform-dsl-reference.md#jvm-targets).
+We plan to fix this issue as soon as possible.
 
-## Compiler
+For more information, see the related issue in [YouTrack](https://youtrack.jetbrains.com/issue/KT-66542).
 
-Updated the Lombok compiler plugin so that it now supports the `@Builder` annotation.
+## How to update to Kotlin %kotlinEapVersion%
 
-## Standard library
+Starting from IntelliJ IDEA 2023.3 and Android Studio Iguana (2023.2.1) Canary 15, the Kotlin plugin is distributed as a
+bundled plugin included in your IDE. This means that you can't install the plugin from JetBrains Marketplace anymore.
+The bundled plugin supports upcoming Kotlin EAP releases.
 
-* Updated the JVM target of the libraries in Kotlin distribution to version 1.8:
-   * The contents of the artifacts `kotlin-stdlib-jdk7` and `kotlin-stdlib-jdk8` have been moved into `kotlin-stdlib`.
-* Stabilized extension functions for `java.util.Optional`.
-* Stabilized functions:
-    * `cbrt()`
-    * `toTimeUnit()`
-    * `toDurationUnit()`
-* Added new [experimental](components-stability.md#stability-levels-explained) extension functions for `java.nio.file.path` that can recursively copy or delete directory content. Opt-in is required (see details below), and you should use them only for evaluation purposes.
-* Added new [experimental](components-stability.md#stability-levels-explained) functionality to `TimeMarks`, allowing `elapsedNow` to be read from multiple `TimeMarks` simultaneously. Opt-in is required (see details below), and you should use them only for evaluation purposes.
-
-> To opt in to the experimental API for:
-> * `java.nio.file.path`, use `@OptIn(kotlin.io.path.ExperimentalPathApi::class)` or `@kotlin.io.path.ExperimentalPathApi`.
-> * `TimeMarks`, use `@OptIn(ExperimentalTime::class)` or `@ExperimentalTime`.
->
-{type="note"}
-
-## How to update to Kotlin 1.8.0-Beta
-
-You can install Kotlin 1.8.0-Beta in the following ways:
-
-* If you use the _Early Access Preview_ update channel, the IDE will suggest automatically updating to 1.8.0-Beta as soon as it becomes available.
-* If you use the _Stable_ update channel, you can change the channel to _Early Access Preview_ at any time by selecting **Tools** | **Kotlin** | **Configure Kotlin Plugin Updates** in your IDE. You'll then be able to install the latest preview release. Check out [these instructions](install-eap-plugin.md) for details.
-
-Once you've installed 1.8.0-Beta, don't forget to [change the Kotlin version](configure-build-for-eap.md) to 1.8.0-Beta in your build scripts.
-
-## Learn more
-
-For more detail about the contents of this release, see our [changelog](https://github.com/JetBrains/kotlin/releases/tag/v1.8.0-Beta).
+To update to the new Kotlin EAP version, [change the Kotlin version](configure-build-for-eap.md#adjust-the-kotlin-version)
+to %kotlinEapVersion% in your build scripts.
